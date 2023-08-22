@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:googleareamapping/MoveablePolygon1.dart';
 import 'package:googleareamapping/PointedPolygon.dart';
 import 'package:googleareamapping/Line Polygon.dart';
 import 'package:googleareamapping/CoveredColorPolygon.dart';
 import 'package:googleareamapping/testing1.dart';
-
-import 'MoveablePolygon2.dart';
-import 'MoveablePolygon3.dart';
-import 'MovealbePointedLinePolygon.dart';
+import 'googlemaps.dart';
 
 void main() {
   runApp(MyApp());
@@ -51,15 +47,9 @@ class _PolylineOrPloygoanExampleState extends State<PolylineOrPloygoanExample> {
             const SizedBox(height: 10),
             buildButtons(context, 'Pointed Polygon', PointedPolygon()),
             const SizedBox(height: 10),
-            buildButtons(context, 'Moveable Pointed Polygon', MoveableLinePolygon()),
-            const SizedBox(height: 10),
-            buildButtons(context, 'Moveable Pointed Polygon 1', MoveablePolygonWidget1()),
-            const SizedBox(height: 10),
-            buildButtons(context, 'Moveable Pointed Polygon 2', PolygonPage2()),
-            const SizedBox(height: 10),
-            buildButtons(context, 'Moveable Pointed Polygon 3', MoveableLinePolygon3()),
-            const SizedBox(height: 10),
             buildButtons(context, 'Testing', TestingMovedPainterPoint()),
+            const SizedBox(height: 10),
+            buildButtons(context, 'Google Maps', GoogleMapsService()),
             const SizedBox(height: 10),
           ],
         ),

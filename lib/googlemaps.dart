@@ -1,10 +1,15 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
+import 'dart:math' as math;
+import 'package:flutter/src/material/dropdown.dart';
+
+import 'model_bottom_sheet.dart';
 
 class GoogleMapsService extends StatefulWidget {
   const GoogleMapsService({super.key});
@@ -18,6 +23,10 @@ class _GoogleMapsServiceState extends State<GoogleMapsService> {
   TextEditingController _controller = TextEditingController();
   var uuid = Uuid();
   String sessiontoken = '112233';
+  List<LatLng> selectedPosition = [];
+  double area = 0;
+  double MainArea = 0;
+  String? convert = 'Square Meters';
 
   static final CameraPosition cameraPosition = const CameraPosition(
     target: LatLng(23.777176, 90.399452),
@@ -35,8 +44,8 @@ class _GoogleMapsServiceState extends State<GoogleMapsService> {
     return await Geolocator.getCurrentPosition();
   }
 
-  onChangeMethod(){
-    if(sessiontoken==null){
+  onChangeMethod() {
+    if (sessiontoken == null) {
       setState(() {
         sessiontoken = uuid.v4();
         print('session = $sessiontoken');
@@ -48,11 +57,11 @@ class _GoogleMapsServiceState extends State<GoogleMapsService> {
 
   getSuggetstion(String input) async {
     String api_key = 'AIzaSyAJTDDyLJGfrCPDUhHab9K5tpXv2Vfeztk';
-    String baseURL ='https://maps.googleapis.com/maps/api/place/autocomplete/json';
+    String baseURL = 'https://maps.googleapis.com/maps/api/place/autocomplete/json';
     // String baseURL = 'https://developers.google.com/maps/documentation/places/web-service/autocomplete/json';
     String request = '$baseURL?input=$input&key=$api_key&sessiontoken=$sessiontoken';
     var response = await http.get(Uri.parse(request));
-    if(response.statusCode==200){
+    if (response.statusCode == 200) {
       setState(() {
         placesList = jsonDecode(response.body.toString())['predictions'];
         print(response.body.toString());
@@ -60,11 +69,46 @@ class _GoogleMapsServiceState extends State<GoogleMapsService> {
     }
   }
 
+  Set<Polygon> _polygon = HashSet<Polygon>();
+
+  tapOnMap(LatLng latLng) {
+    setState(() {
+      selectedPosition.add(latLng);
+      _polygon.add(Polygon(
+        polygonId: PolygonId('1'),
+        points: selectedPosition,
+        fillColor: Colors.black.withOpacity(0.3),
+        geodesic: true,
+        strokeColor: Colors.black,
+        strokeWidth: 2,
+      ));
+
+      const double earthRadius = 6371000; // in meters
+      double area = 0;
+
+      if (selectedPosition.length > 2) {
+        for (int i = 0; i < selectedPosition.length - 1; i++) {
+          LatLng p1 = selectedPosition[i];
+          LatLng p2 = selectedPosition[i + 1];
+          area += _convertToRadian(p2.longitude - p1.longitude) *
+              (2 + math.sin(_convertToRadian(p1.latitude)) +
+                  math.sin(_convertToRadian(p2.latitude)));
+        }
+        area = area * earthRadius * earthRadius / 2;
+      }
+      MainArea = area.abs();
+    });
+  }
+
+  double _convertToRadian(double degree) {
+    return degree * math.pi / 180;
+  }
+
   @override
   void initState() {
     // TODO: implement initState
     _controller.addListener(() {
-        onChangeMethod();
+      onChangeMethod();
     });
     super.initState();
   }
@@ -77,6 +121,8 @@ class _GoogleMapsServiceState extends State<GoogleMapsService> {
           alignment: Alignment.center,
           children: [
             GoogleMap(
+              polygons: _polygon,
+              onTap: tapOnMap,
               initialCameraPosition: cameraPosition,
               mapType: MapType.normal,
               myLocationButtonEnabled: true,
@@ -114,7 +160,7 @@ class _GoogleMapsServiceState extends State<GoogleMapsService> {
                             cursorOpacityAnimates: true,
                             textAlign: TextAlign.left,
                             decoration: InputDecoration(
-                              filled: true,
+                                filled: true,
                                 fillColor: Colors.white.withOpacity(0.8),
                                 enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.black)),
                                 focusedBorder: OutlineInputBorder(
@@ -133,22 +179,39 @@ class _GoogleMapsServiceState extends State<GoogleMapsService> {
                     ),
                   ],
                 )),
-            if(search)
-            Positioned(
-              top: 44,
-              child: Container(
-                height: MediaQuery.of(context).size.height*0.7,
-                width: MediaQuery.of(context).size.width,
-                child: ListView.builder(
-                  itemCount: placesList.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(placesList[index]['description']),
-                    );
+            if (selectedPosition.length > 2)
+              Positioned(
+                bottom: 10,
+                child: GestureDetector(
+                  onTap: (){
+                    showBottomSheetForMeasure(context, MainArea);
                   },
+                  child: Container(
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                      border: Border.all(color: Colors.white),
+                    ),
+                    child: Text('See Measurement', style: TextStyle(color: Colors.white)),
+                  ),
                 ),
               ),
-            ),
+            if (search)
+              Positioned(
+                top: 44,
+                child: Container(
+                  height: MediaQuery.of(context).size.height * 0.7,
+                  width: MediaQuery.of(context).size.width,
+                  child: ListView.builder(
+                    itemCount: placesList.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Text(placesList[index]['description']),
+                      );
+                    },
+                  ),
+                ),
+              ),
             Positioned(
                 bottom: 90,
                 right: 0,
@@ -158,22 +221,22 @@ class _GoogleMapsServiceState extends State<GoogleMapsService> {
                       style:
                           ElevatedButton.styleFrom(backgroundColor: Colors.blue, elevation: 0, shape: CircleBorder()),
                       onPressed: () async {
-                          getUserPosition().then((value) async {
-                            setState(() {
-                              _marker.add(Marker(
-                                markerId: MarkerId('1'),
-                                position: LatLng(value.latitude, value.longitude),
-                              ));
-                            });
-
-                            GoogleMapController _controller = await _completer.future;
-                            _controller.animateCamera(CameraUpdate.newCameraPosition(
-                              CameraPosition(
-                                target: LatLng(value.latitude, value.longitude),
-                                zoom: 6,
-                              ),
+                        getUserPosition().then((value) async {
+                          setState(() {
+                            _marker.add(Marker(
+                              markerId: MarkerId('1'),
+                              position: LatLng(value.latitude, value.longitude),
                             ));
                           });
+
+                          GoogleMapController _controller = await _completer.future;
+                          _controller.animateCamera(CameraUpdate.newCameraPosition(
+                            CameraPosition(
+                              target: LatLng(value.latitude, value.longitude),
+                              zoom: 6,
+                            ),
+                          ));
+                        });
                       },
                       child: Icon(Icons.my_location, color: Colors.white),
                     )

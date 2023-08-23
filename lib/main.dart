@@ -3,6 +3,7 @@ import 'package:googleareamapping/PointedPolygon.dart';
 import 'package:googleareamapping/Line Polygon.dart';
 import 'package:googleareamapping/CoveredColorPolygon.dart';
 import 'package:googleareamapping/testing1.dart';
+import 'aigenerated.dart';
 import 'googlemaps.dart';
 
 void main() {
@@ -50,6 +51,8 @@ class _PolylineOrPloygoanExampleState extends State<PolylineOrPloygoanExample> {
             buildButtons(context, 'Testing', TestingMovedPainterPoint()),
             const SizedBox(height: 10),
             buildButtons(context, 'Google Maps', GoogleMapsService()),
+            const SizedBox(height: 10),
+            buildButtons(context, 'Google Maps Area', PolygonAreaExample()),
             const SizedBox(height: 10),
           ],
         ),
